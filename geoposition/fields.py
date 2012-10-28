@@ -9,9 +9,13 @@ from .forms import GeopositionField as GeopositionFormField
 class GeopositionField(models.Field):
     description = _("A geoposition (latitude and longitude)")
     __metaclass__ = models.SubfieldBase
+    mapOptions = None
 
     def __init__(self, *args, **kwargs):
         kwargs['max_length'] = 42
+        if 'mapOptions' in kwargs:
+            self.mapOptions = kwargs['mapOptions']
+            del(kwargs['mapOptions'])
         super(GeopositionField, self).__init__(*args, **kwargs)
 
     def get_internal_type(self):
@@ -45,7 +49,8 @@ class GeopositionField(models.Field):
 
     def formfield(self, **kwargs):
         defaults = {
-            'form_class': GeopositionFormField
+            'form_class': GeopositionFormField,
+            'mapOptions': self.mapOptions
         }
         defaults.update(kwargs)
         return super(GeopositionField, self).formfield(**defaults)

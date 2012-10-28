@@ -1,33 +1,41 @@
-if (typeof django == 'undefined' && typeof jQuery != 'undefined') {
+/*global google*/
+if (jQuery !== undefined) {
     var django = {
-        'jQuery': jQuery
+        'jQuery':jQuery
     };
 }
+
 (function($) {
-    
+
     window.geopositionMapInit = function() {
         var mapDefaults = {
             'mapTypeId': google.maps.MapTypeId.ROADMAP
         };
-        
-        $('p.geoposition-widget').each(function() {
+
+        $('p[data-map-widget]').each(function() {
             var $container = $(this),
-                $mapContainer = $('<div class="geoposition-map" />'),
-                $addressRow = $('<div class="geoposition-address" />'),
-                $searchRow = $('<div class="geoposition-search" />'),
-                $searchInput = $('<input>', {'type': 'search', 'placeholder': 'Search …'}),
-                $latitudeField = $container.find('input.geoposition:eq(0)'),
-                $longitudeField = $container.find('input.geoposition:eq(1)'),
-                latitude = parseFloat($latitudeField.val()) || 0,
-                longitude = parseFloat($longitudeField.val()) || 0,
+                $mapContainer = $('<div class="geoposition-map"></div>'),
+                $addressRow = $('<div class="geoposition-address"></div>'),
+                $searchRow = $('<div class="geoposition-search"></div>'),
+                $searchInput = $('<input>', {'type': 'search', 'placeholder': 'Search \u2026'}),
+                data = $.parseJSON($container.attr('data-map-widget')), //compatible with jQuery >= 1.4.1 (django >=1.3)
+                $latitudeRow = $(data.latitudeSelector),
+                $longitudeRow = $(data.longitudeSelector),
+                $latitudeField = $($latitudeRow).find('input') || $latitudeRow,
+                $longitudeField = $($longitudeRow).find('input') || $longitudeRow,
+                latitude = parseFloat($latitudeRow.val()) || 0,
+                longitude = parseFloat($longitudeRow.val()) || 0,
                 map,
                 mapLatLng,
+                mapDefault = $.extend({}, mapDefaults, data.mapOptions),
                 mapOptions,
                 marker;
-            
-            
+            console.log(mapDefault);
+
+
+
             $searchInput.bind('keydown', function(e) {
-                if (e.keyCode == 13) {
+                if (e.keyCode === 13) {
                     e.preventDefault();
                     var $input = $(this),
                         gc = new google.maps.Geocoder();
@@ -35,7 +43,7 @@ if (typeof django == 'undefined' && typeof jQuery != 'undefined') {
                     gc.geocode({
                         'address': $(this).val()
                     }, function(results, status) {
-                        if (status == 'OK') {
+                        if (status === 'OK') {
                             var updatePosition = function(result) {
                                 if (result.geometry.bounds) {
                                     map.fitBounds(result.geometry.bounds);
@@ -46,13 +54,13 @@ if (typeof django == 'undefined' && typeof jQuery != 'undefined') {
                                 marker.setPosition(result.geometry.location);
                                 google.maps.event.trigger(marker, 'dragend');
                             };
-                            
-                            if (results.length == 1) {
+
+                            if (results.length === 1) {
                                 updatePosition(results[0]);
                             } else {
-                                var $ul = $('<ul />', {'class': 'geoposition-results'});
+                                var $ul = $('<ul></ul>', {'class': 'geoposition-results'});
                                 $.each(results, function(i, result) {
-                                    var $li = $('<li />');
+                                    var $li = $('<li></li>');
                                     $li.text(result.formatted_address);
                                     $li.bind('click', function() {
                                         updatePosition(result);
@@ -69,13 +77,18 @@ if (typeof django == 'undefined' && typeof jQuery != 'undefined') {
                 $(this).parent().find('ul.geoposition-results').remove();
             });
             $searchInput.appendTo($searchRow);
+            if (! $.contains($container.get(0), $latitudeRow.get(0))){
+                $container.append($latitudeRow, $longitudeRow);
+            }
             $container.append($mapContainer, $addressRow, $searchRow);
-            
+            console.log(latitude);
+            console.log(longitude);
             mapLatLng = new google.maps.LatLng(latitude, longitude);
-            mapOptions = $.extend({}, mapDefaults, {
+            mapOptions = $.extend({}, {
                 'center': mapLatLng,
-                'zoom': latitude && longitude ? 15 : 1
-            });
+                'zoom': latitude || longitude ? 15 : 1
+            }, mapDefault);
+            console.log(mapOptions);
             map = new google.maps.Map($mapContainer.get(0), mapOptions);
             marker = new google.maps.Marker({
                 'position': mapLatLng,
@@ -86,24 +99,26 @@ if (typeof django == 'undefined' && typeof jQuery != 'undefined') {
             google.maps.event.addListener(marker, 'dragend', function() {
                 $latitudeField.val(this.position.lat() || '');
                 $longitudeField.val(this.position.lng() || '');
-                
+                console.log(this.position.lat());
                 var gc = new google.maps.Geocoder();
-                gc.geocode({
-                    'latLng': marker.position
-                }, function(results, status) {
-                    $addressRow.text('');
-                    if (results[0]) {
-                        $addressRow.text(results[0].formatted_address);
-                    }
-                });
+                var geocode = function(geocoder, marker){
+                    geocoder.geocode({
+                        'latLng': marker.position
+                    }, function(results, status) {
+                        $addressRow.text('');
+                        if (results[0]) {
+                            $addressRow.text(results[0].formatted_address);
+                        }
+                    });
+                };
+                google.maps.event.trigger(marker, 'dragend');
             });
-            google.maps.event.trigger(marker, 'dragend');
         });
-        
+
     };
-    
+
     $(document).ready(function() {
-        var $script = $('<script/>');
+        var $script = $('<script></script>');
         $script.attr('src', 'http://maps.google.com/maps/api/js?sensor=false&callback=geopositionMapInit');
         $script.appendTo('body');
     });

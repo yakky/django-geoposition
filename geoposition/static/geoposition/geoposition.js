@@ -21,8 +21,10 @@ if (jQuery !== undefined) {
                 data = $.parseJSON($container.attr('data-map-widget')), //compatible with jQuery >= 1.4.1 (django >=1.3)
                 $latitudeRow = $(data.latitudeSelector),
                 $longitudeRow = $(data.longitudeSelector),
-                $latitudeField = $($latitudeRow).find('input') || $latitudeRow,
-                $longitudeField = $($longitudeRow).find('input') || $longitudeRow,
+                $latitudeField = $latitudeRow,
+                $longitudeField = $longitudeRow,
+                //$latitudeField = $($latitudeRow).find('input') || $latitudeRow,
+                //$longitudeField = $($longitudeRow).find('input') || $longitudeRow,
                 latitude = parseFloat($latitudeRow.val()) || 0,
                 longitude = parseFloat($longitudeRow.val()) || 0,
                 map,
@@ -30,9 +32,6 @@ if (jQuery !== undefined) {
                 mapDefault = $.extend({}, mapDefaults, data.mapOptions),
                 mapOptions,
                 marker;
-            console.log(mapDefault);
-
-
 
             $searchInput.bind('keydown', function(e) {
                 if (e.keyCode === 13) {
@@ -99,7 +98,6 @@ if (jQuery !== undefined) {
             google.maps.event.addListener(marker, 'dragend', function() {
                 $latitudeField.val(this.position.lat() || '');
                 $longitudeField.val(this.position.lng() || '');
-                console.log(this.position.lat());
                 var gc = new google.maps.Geocoder();
                 var geocode = function(geocoder, marker){
                     geocoder.geocode({
@@ -111,7 +109,7 @@ if (jQuery !== undefined) {
                         }
                     });
                 };
-                google.maps.event.trigger(marker, 'dragend');
+                //google.maps.event.trigger(marker, 'dragend');
             });
         });
 
